@@ -182,6 +182,11 @@ button.card{padding:0}
 .modal .box{position:relative;width:min(1200px,100%);aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 0 120px rgba(47,59,221,.5)}
 .modal .x{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:16px;z-index:51}
 .start .more{margin-top:14px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs button{font:inherit;font-size:14px;font-weight:700;color:var(--muted);background:transparent;border:1px solid var(--line-2);border-radius:999px;padding:9px 16px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--white);color:var(--ink);border-color:var(--white)}
+.tabs button:hover{color:var(--white);border-color:var(--white)}
+.tabs button[aria-selected="true"]:hover{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -246,7 +251,8 @@ button.card{padding:0}
   <div class="glow g-b" style="width:1200px;height:760px;right:-300px;top:-260px;opacity:.5"></div>
   <div class="glow g-o" style="width:1000px;height:560px;left:-320px;bottom:-200px;opacity:.3"></div>
   <div class="wrap">
-    <div class="sec-h"><div><div class="lab o" id="caseLab"></div><h2 id="caseTitle"></h2></div></div>
+    <div class="sec-h"><div><div class="lab o" id="caseLab"></div><h2 id="caseTitle"></h2></div>
+      <div class="tabs" id="caseTabs" role="tablist" aria-label="케이스 선택"></div></div>
     <div class="case">
       <button class="big" id="caseVideo" type="button"></button>
       <div>
@@ -254,7 +260,7 @@ button.card{padding:0}
         <dl class="kv" id="caseRows"></dl>
         <div class="lab o" style="margin-top:32px">BEHIND</div>
         <div class="behind" id="behind"></div>
-        <div class="acts"><a class="pill" href="#works">다른 작품 보기</a><a class="pill solid" href="#contact">연락하기</a></div>
+        <div class="acts"><button class="pill" id="nextCase" type="button">다음 케이스 →</button><a class="pill solid" href="#contact">연락하기</a></div>
       </div>
     </div>
   </div>
@@ -343,16 +349,24 @@ button.card{padding:0}
     return '<button type="button" class="card" data-yt="'+esc(w.youtube)+'" aria-label="'+esc(w.title)+' 재생"><div class="vid"><img src="'+thumb(w.youtube)+'" alt="" loading="lazy"><span class="play" aria-hidden="true"></span><span class="soon">눌러서 재생</span></div><div class="t"><div class="lab o">CASE '+pad(i+1)+'</div><h3>'+esc(w.title)+'</h3><p>'+esc(w.desc)+'</p><div class="chips">'+chips+'</div></div></button>';}).join('');
   [].forEach.call(document.querySelectorAll('.card'),function(c){c.onclick=function(){open(c.dataset.yt)};});
 
-  // case
-  var C=S.caseStudy, f=W[0];
-  document.getElementById('caseLab').textContent=C.label;
-  document.getElementById('caseTitle').textContent=f.title;
-  document.getElementById('caseHead').innerHTML=C.headline;
-  document.getElementById('caseRows').innerHTML=C.rows.map(function(r){return '<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>'}).join('');
-  document.getElementById('behind').innerHTML=C.behind.map(function(b){return '<div><b class="num">'+esc(b[0])+'</b><span>'+esc(b[1])+'</span></div>'}).join('');
-  var cv=document.getElementById('caseVideo');
-  cv.innerHTML='<img src="'+thumb(f.youtube,'maxresdefault')+'" onerror="this.src=\''+thumb(f.youtube)+'\'" alt=""><span class="play" aria-hidden="true"></span><span class="cap">본편 재생</span>';
-  cv.onclick=function(){cv.innerHTML+='<iframe class="frame" src="'+embed(f.youtube)+'" title="'+esc(f.title)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';cv.onclick=null;};
+  // case (tabs)
+  var CS=S.cases||[], ci=0, cv=document.getElementById('caseVideo'), tabs=document.getElementById('caseTabs');
+  tabs.innerHTML=W.map(function(w,i){return '<button type="button" role="tab" data-i="'+i+'">'+pad(i+1)+' '+esc(w.title)+'</button>'}).join('');
+  function showCase(i,scroll){ci=i;var f=W[i],C=CS[i]||{label:'CASE '+pad(i+1),headline:esc(f.desc),rows:[],behind:[]};
+    document.getElementById('caseLab').textContent=C.label;
+    document.getElementById('caseTitle').textContent=f.title;
+    document.getElementById('caseHead').innerHTML=C.headline;
+    document.getElementById('caseRows').innerHTML=C.rows.map(function(r){return '<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>'}).join('');
+    document.getElementById('behind').innerHTML=C.behind.map(function(b){return '<div><b class="num">'+esc(b[0])+'</b><span>'+esc(b[1])+'</span></div>'}).join('');
+    cv.innerHTML='<img src="'+thumb(f.youtube,'maxresdefault')+'" onerror="this.src=\''+thumb(f.youtube)+'\'" alt=""><span class="play" aria-hidden="true"></span><span class="cap">본편 재생</span>';
+    cv.setAttribute('aria-label',f.title+' 재생');
+    cv.onclick=function(){cv.innerHTML+='<iframe class="frame" src="'+embed(f.youtube)+'" title="'+esc(f.title)+'" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';cv.onclick=null;};
+    [].forEach.call(tabs.children,function(b,k){b.setAttribute('aria-selected',k===i?'true':'false')});
+    if(scroll)document.getElementById('case').scrollIntoView({behavior:'smooth'});
+  }
+  [].forEach.call(tabs.children,function(b){b.onclick=function(){showCase(+b.dataset.i)}});
+  document.getElementById('nextCase').onclick=function(){showCase((ci+1)%W.length)};
+  showCase(0);
 
   // about
   document.getElementById('career').innerHTML=S.career.map(function(c){return '<div class="row"><span class="d num">'+esc(c[0])+'</span><div><b>'+esc(c[1])+'</b> · '+esc(c[2])+'<small>'+esc(c[3])+'</small></div></div>'}).join('');
